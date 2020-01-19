@@ -48,7 +48,7 @@ def main(args):
     for step in range(args.epoch):
 #x_support: have labels
 # x_qurey: don't have labels
-        x_spt, y_spt, x_qry, y_qry = db_train.next()
+        x_spt, y_spt, x_qry, y_qry = db_train.next('train')
         x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.LongTensor(y_spt).to(device), \
                                      torch.from_numpy(x_qry).to(device), torch.LongTensor(y_qry).to(device)
 
@@ -58,15 +58,16 @@ def main(args):
         if step % 50 == 0:
             print('step:', step, '\ttraining acc:', accs)
 
-        if step % 500 == 0:
+        # if step % 500 == 0:
+        if step % 1 == 0:
             accs = []
             for _ in range(1000//args.task_num):
                 # test
                 x_spt, y_spt, x_qry, y_qry = db_train.next('test')
-                x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.from_numpy(y_spt).to(device), \
-                                             torch.from_numpy(x_qry).to(device), torch.from_numpy(y_qry).to(device)
+                x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.LongTensor(y_spt).to(device), \
+                                             torch.from_numpy(x_qry).to(device), torch.LongTensor(y_qry).to(device)
 
-                # split to single task each time
+                # split to single task each time，not use batch to update parameters
                 for x_spt_one, y_spt_one, x_qry_one, y_qry_one in zip(x_spt, y_spt, x_qry, y_qry):
                     test_acc = maml.finetunning(x_spt_one, y_spt_one, x_qry_one, y_qry_one)
                     accs.append( test_acc )
@@ -88,8 +89,8 @@ if __name__ == '__main__':
     argparser.add_argument('--task_num', type=int, help='meta batch size, namely task num', default=32)
     argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-3)
     argparser.add_argument('--update_lr', type=float, help='task-level inner update learning rate', default=0.4)
-    argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)
-    argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
+    argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5) # 元学习时所用的内部求导更新参数的次数
+    argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10) # 微调时对每个task所用的求导更新次数
 
     args = argparser.parse_args()
 

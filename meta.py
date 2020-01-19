@@ -78,12 +78,12 @@ class Meta(nn.Module):
         corrects = [0 for _ in range(self.update_step + 1)]
 
 
-        for i in range(task_num):
+        for i in range(task_num): # 对每个batch中的所有task 进行参数更新
 
             # 1. run the i-th task and compute loss for k=0
             logits = self.net(x_spt[i], vars=None, bn_training=True)
             loss = F.cross_entropy(logits, y_spt[i])
-            grad = torch.autograd.grad(loss, self.net.parameters())
+            grad = torch.autograd.grad(loss, self.net.parameters()) # dloss/dnet.parmeters()
             fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(grad, self.net.parameters())))
 
             # this is the loss and accuracy before first update
@@ -107,7 +107,8 @@ class Meta(nn.Module):
                 pred_q = F.softmax(logits_q, dim=1).argmax(dim=1)
                 correct = torch.eq(pred_q, y_qry[i]).sum().item()
                 corrects[1] = corrects[1] + correct
-
+            # 对每个task 进行多次求导更新，这里利用的是直接使用更新公式，求感到用的autograd.grad
+            # support set use for update and query use for calculate loss
             for k in range(1, self.update_step):
                 # 1. run the i-th task and compute loss for k=1~K-1
                 logits = self.net(x_spt[i], fast_weights, bn_training=True)
@@ -119,7 +120,7 @@ class Meta(nn.Module):
 
                 logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
                 # loss_q will be overwritten and just keep the loss_q on last update step.
-                loss_q = F.cross_entropy(logits_q, y_qry[i])
+                loss_q = F.cross_entropy(logits_q, y_qry[i]) # calculate query set loss to batch parameters update
                 losses_q[k + 1] += loss_q
 
                 with torch.no_grad():
@@ -149,7 +150,7 @@ class Meta(nn.Module):
 
     def finetunning(self, x_spt, y_spt, x_qry, y_qry):
         """
-
+        传进来的只是一个task，not a batch
         :param x_spt:   [setsz, c_, h, w]
         :param y_spt:   [setsz]
         :param x_qry:   [querysz, c_, h, w]
@@ -164,7 +165,7 @@ class Meta(nn.Module):
 
         # in order to not ruin the state of running_mean/variance and bn_weight/bias
         # we finetunning on the copied model instead of self.net
-        net = deepcopy(self.net)
+        net = deepcopy(self.net) # 微调的参数学习不直接用于原来的模型
 
         # 1. run the i-th task and compute loss for k=0
         logits = net(x_spt)
@@ -212,6 +213,7 @@ class Meta(nn.Module):
 
 
         del net
+        # 微调没有用batch
 
         accs = np.array(corrects) / querysz
 

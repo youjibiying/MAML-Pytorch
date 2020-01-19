@@ -105,7 +105,7 @@ class OmniglotNShot:
         data_cache = []
 
         # print('preload next 50 caches of batchsz of batch.')
-        for sample in range(10):  # num of episodes
+        for sample in range(10):  # num of episodes  相当于H=10 个batch，每个batch有32 组数据，每组数据包含有support and query sets
 
             x_spts, y_spts, x_qrys, y_qrys = [], [], [], []
             for i in range(self.batchsz):  # one batch means one set

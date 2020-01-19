@@ -27,6 +27,7 @@ class Learner(nn.Module):
         # running_mean and running_var
         self.vars_bn = nn.ParameterList()
 
+        # extrat parameter from netword to calculate the grad in inner optimization
         for i, (name, param) in enumerate(self.config):
             if name is 'conv2d':
                 # [ch_out, ch_in, kernelsz, kernelsz]
