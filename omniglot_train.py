@@ -29,8 +29,8 @@ def main(args):
         ('flatten', []),
         ('linear', [args.n_way, 64])
     ]
-
-    device = torch.device('cuda')
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    # device = torch.device('cuda')
     maml = Meta(args, config).to(device)
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
@@ -46,10 +46,11 @@ def main(args):
                        imgsz=args.imgsz)
 
     for step in range(args.epoch):
-
+#x_support: have labels
+# x_qurey: don't have labels
         x_spt, y_spt, x_qry, y_qry = db_train.next()
-        x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.from_numpy(y_spt).to(device), \
-                                     torch.from_numpy(x_qry).to(device), torch.from_numpy(y_qry).to(device)
+        x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.LongTensor(y_spt).to(device), \
+                                     torch.from_numpy(x_qry).to(device), torch.LongTensor(y_qry).to(device)
 
         # set traning=True to update running_mean, running_variance, bn_weights, bn_bias
         accs = maml(x_spt, y_spt, x_qry, y_qry)
